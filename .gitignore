@@ -1,0 +1,15 @@
+# Ignorar datos
+data/
+
+# Ignorar modelos pesados
+models/
+*.pth
+*.h5
+
+# Ignorar archivos de sistema y entornos virtuales
+__pycache__/
+venv/
+.venv/
+env/
+.env
+.DS_Store
