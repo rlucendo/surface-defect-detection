@@ -41,7 +41,7 @@ def validate(val_loader, model, criterion):
     accs = AverageMeter()
 
     with torch.no_grad(): # No calculamos gradientes (ahorra memoria)
-        for images, labels in images, labels in val_loader:
+        for images, labels in val_loader:
             images, labels = images.to(DEVICE), labels.to(DEVICE)
 
             outputs = model(images)
