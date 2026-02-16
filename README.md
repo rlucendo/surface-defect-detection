@@ -1,119 +1,137 @@
 # Industrial Steel Surface Defect Detection
 
-## Project Overview
+![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-orange)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-This project implements a **Computer Vision system** designed to automate the detection and classification of surface defects in industrial steel production.
+## 1. The Challenge: Quality Beyond the Human Eye
 
-Using the **NEU Surface Defect Database**, the model identifies six distinct types of defects: *crazing, inclusion, patches, pitted surface, rolled-in scale, and scratches*. The solution focuses not just on model accuracy, but on delivering a **production-ready codebase** that emphasizes modularity, reproducibility, and maintainability.
+In high-stakes manufacturing, quality control is the silent guardian of reputation. While human operators are skilled at identifying patterns, fatigue is inevitable. Machines, however, never blink.
 
-## Technical Approach
+This project is not just an image classifier; it is a **robust, automated visual inspection system** designed to identify six specific types of defects in steel surfaces: *crazing, inclusion, patches, pitted surface, rolled-in scale, and scratches*.
 
-The core objective was to transition from a research-oriented notebook environment to a robust software engineering artifact.
+My goal was to move beyond the "notebook experiment" phase and engineer a solution that is **modular, reproducible, and ready for production deployment**.
 
-* **Architecture:** Implemented **ResNet18** using Transfer Learning. This architecture was selected to balance high accuracy with inference latency, suitable for deployment in edge-computing scenarios typical of industrial settings.
-* **Framework:** Built entirely in **PyTorch**.
-* **Data Pipeline:** Custom `Dataset` and `DataLoader` classes were implemented to handle image preprocessing and normalization, ensuring the pipeline is resilient to inconsistent input data.
-* **Engineering Practices:**
-    * **Decoupled Configuration:** All hyperparameters and paths are managed via a central configuration file, avoiding hardcoded values.
-    * **Type Hinting:** Strict typing is used across the codebase to ensure interface clarity and reduce runtime errors.
-    * **Checkpointing:** The training loop automatically saves the best-performing model based on validation loss, preventing overfitting.
+---
 
-## Project Structure
+## 2. Project Architecture
 
-The repository follows a standard data science project structure, separating source code, configuration, and artifacts.
+Just as a building needs a solid foundation, this project is structured to separate concerns. Data ingestion, model definition, and training logic are decoupled to ensure maintainability.
 
+### Directory Structure
 ```text
 surface_defect_detection/
-├── data/                 # Raw and processed data (Not tracked by Git)
-├── models/               # Model checkpoints and binaries (Not tracked by Git)
-├── notebooks/            # Exploratory Data Analysis (EDA) and prototyping
-├── src/                  # Source code
-│   ├── __init__.py
-│   ├── config.py         # Central configuration (Paths, Hyperparams)
-│   ├── dataset.py        # Custom PyTorch Dataset class
-│   ├── model.py          # CNN Architecture definition
-│   ├── train.py          # Training loop execution
-│   └── inference.py      # Prediction script for new images
-├── requirements.txt      # Project dependencies
-└── README.md             # Project documentation
-
+├── data/                 # Raw and processed ingredients (GitIgnored)
+├── models/               # Trained artifacts (GitIgnored)
+├── notebooks/            # The lab: EDA and prototypes
+├── src/                  # The production machinery
+│   ├── config.py         # Central control panel (Hyperparameters & Paths)
+│   ├── prepare_data.py   # ETL Pipeline: From raw XMLs to structured folders
+│   ├── dataset.py        # Custom PyTorch Dataset (The Loader)
+│   ├── model.py          # ResNet18 Architecture Definition
+│   ├── train.py          # Training Loop with validation & checkpointing
+│   ├── utils.py          # Metrics and logging tools
+│   └── inference.py      # Production inference script
+├── requirements.txt      # Dependencies
+└── README.md             # Documentation
 ```
 
-## Setup and Installation
+### The Tech Stack
+* **Core:** Python 3.10+, PyTorch.
+* **Model:** ResNet18 (Transfer Learning). Chosen for its optimal balance between accuracy and inference speed (FPS) for edge devices.
+* **Data Format:** NEU-DET Dataset (Pascal VOC annotations).
+
+---
+
+## 3. The Training Process (Research & Validation)
+
+Training a model is like forging metal: you need the right temperature (hyperparameters) and the right technique (optimizer) to get a strong result.
+
+### Methodology
+1.  **Data Ingestion:** I implemented a custom ETL script (`prepare_data.py`) that parses Pascal VOC XML files. This ensures we rely on ground-truth labels rather than fragile filenames.
+2.  **Preprocessing:** Images are resized to 224x224 and normalized using ImageNet statistics (`mean=[0.485, 0.456, 0.406]`, `std=[0.229, 0.224, 0.225]`).
+3.  **Strategy:**
+    * **Transfer Learning:** Leveraged pre-trained weights to accelerate convergence.
+    * **Optimizer:** Adam (`lr=0.001`) for adaptive learning rate management.
+    * **Checkpointing:** The system automatically saves the model only when Validation Loss improves, preventing overfitting.
+
+### Performance & Metrics
+We achieved **>99% Accuracy** on the validation set. However, accuracy can be deceiving. In an industrial setting, a False Negative (missing a defect) is costly.
+
+* **Confusion Matrix:** The model shows high diagonal density, confirming minimal confusion between similar textures like *scratches* and *crazing*.
+* **Explainability (Grad-CAM):** To ensure the model isn't "cheating" (looking at background noise), I implemented Grad-CAM visualization. The heatmaps confirm the network focuses specifically on the defect patterns.
+
+> **View the Training Log:** You can inspect the full training run, metrics, and visualizations in the accompanying [Colab Notebook](LINK_A_TU_COLAB).
+
+---
+
+## 4. How to Use & Replicate
+
+Whether you want to retrain the system from scratch or use the pre-trained model for inference, follow these steps.
 
 ### Prerequisites
-
+* Git
 * Python 3.8+
-* Virtual Environment (recommended)
+* A clean virtual environment (recommended)
 
-### Installation Steps
+### Setup
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/surface_defect_detection.git
+    cd surface_defect_detection
+    ```
 
-1. **Clone the repository:**
-```bash
-git clone [https://github.com/rlucendo/surface_defect_detection.git](https://github.com/rlucendo/surface_defect_detection.git)
+2.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-```
+### Scenario A: I want to Train the Model
+The data pipeline is automated. You don't need to manually sort files.
 
+1.  **Download Data:** Place the `neu-surface-defect-database` zip from Kaggle into `data/raw` (or use the Kaggle API as shown in the notebook).
+2.  **Run the ETL Pipeline:**
+    This script reads the XMLs and organizes images into class folders.
+    ```bash
+    python src/prepare_data.py
+    ```
+3.  **Launch Training:**
+    ```bash
+    python src/train.py
+    ```
+    *The best model will be saved to `models/model_best.pth`.*
 
-2. **Create and activate a virtual environment:**
-```bash
-python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# Linux/Mac
-source .venv/bin/activate
-
-```
-
-
-3. **Install dependencies:**
-```bash
-pip install -r requirements.txt
-
-```
-
-
-4. **Data Setup:**
-* Download the **NEU Surface Defect Database** from Kaggle.
-* Extract the contents into the `data/` directory.
-* Ensure the structure follows `data/NEU-DET/train`, `data/NEU-DET/valid`, etc., or adjust `src/config.py` accordingly.
-
-
-
-## Usage
-
-### Training
-
-To train the model from scratch, execute the training script. The script logs the training progress and validation metrics to the console.
+### Scenario B: I want to Predict (Inference)
+If you have a trained model (`.pth`), you can classify new images immediately.
 
 ```bash
-python src/train.py
-
+python src/inference.py --image "path/to/test_image.jpg" --model "models/model_best.pth"
 ```
 
-*The best model will be saved automatically to the `models/` directory.*
-
-### Inference
-
-To classify a single image using the trained model:
-
-```bash
-python src/inference.py --image_path "data/sample_image.jpg"
-
+**Output Example:**
+```json
+{
+    "filename": "test_image.jpg",
+    "prediction": "scratches",
+    "confidence": 0.9985
+}
 ```
 
-## Future Improvements
+---
 
-To scale this MVP into a fully operational production system, the following steps are recommended:
+## 5. Future Roadmap
 
-* **Dockerization:** Containerize the application to ensure consistency across development and production environments.
-* **API Deployment:** Wrap the inference logic in a **FastAPI** service to allow integration with external manufacturing systems.
-* **MLOps Integration:** Implement experiment tracking (e.g., MLflow) to monitor metrics over time and manage model versioning.
-* **Data Augmentation:** Implement more aggressive augmentation techniques (rotation, lighting changes) to improve robustness against real-world factory lighting conditions.
+To scale this MVP into a fully operational factory solution, the next steps are:
+
+* [ ] **Dockerization:** Containerize the inference script for consistent deployment.
+* [ ] **API Layer:** Wrap `inference.py` in a **FastAPI** service for real-time camera integration.
+* [ ] **Data Augmentation:** Implement rotation and lighting jitter to handle variable factory lighting conditions.
+
+---
 
 ## Author
 
 **Rubén Lucendo**
-*AI Engineering & Tech Ops*
+*AI Engineer & Product Builder*
 
-
+I build systems that bridge the gap between technical complexity and business value.
