@@ -3,18 +3,34 @@
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-orange)
 ![License](https://img.shields.io/badge/License-MIT-green)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](LINK_A_TU_COLAB)
 
 ## 1. The Challenge: Quality Beyond the Human Eye
 
 In high-stakes manufacturing, quality control is the silent guardian of reputation. While human operators are skilled at identifying patterns, fatigue is inevitable. Machines, however, never blink.
 
-This project is not just an image classifier; it is a **robust, automated visual inspection system** designed to identify six specific types of defects in steel surfaces: *crazing, inclusion, patches, pitted surface, rolled-in scale, and scratches*.
-
-My goal was to move beyond the "notebook experiment" phase and engineer a solution that is **modular, reproducible, and ready for production deployment**.
+This project is not just an image classifier; it is a **robust, automated visual inspection system** designed to identify defects in steel surfaces. My goal was to move beyond the "notebook experiment" phase and engineer a solution that is **modular, reproducible, and ready for production deployment**.
 
 ---
 
-## 2. Project Architecture
+## 2. The Data: NEU-DET
+
+The model is trained on the **NEU Surface Defect Database**, detecting six specific defect types critical in metallurgy:
+
+| Class | Description |
+| :--- | :--- |
+| **Crazing** | Network of fine cracks on the surface. |
+| **Inclusion** | Non-metallic particles trapped in the steel. |
+| **Patches** | Localized surface irregularities. |
+| **Pitted** | Small craters or cavities. |
+| **Rolled-in Scale** | Oxide scale pressed into the surface during rolling. |
+| **Scratches** | Linear abrasions caused by mechanical contact. |
+
+![Defect Types](https://drive.google.com/uc?id=1T3nHEOfKDG0Ut-nkRNI7ohYl-CMcokep)
+
+---
+
+## 3. Project Architecture
 
 Just as a building needs a solid foundation, this project is structured to separate concerns. Data ingestion, model definition, and training logic are decoupled to ensure maintainability.
 
@@ -39,35 +55,40 @@ surface_defect_detection/
 ### The Tech Stack
 * **Core:** Python 3.10+, PyTorch.
 * **Model:** ResNet18 (Transfer Learning). Chosen for its optimal balance between accuracy and inference speed (FPS) for edge devices.
-* **Data Format:** NEU-DET Dataset (Pascal VOC annotations).
+* **ETL:** XML Parsing (Pascal VOC) for ground-truth label extraction.
 
 ---
 
-## 3. The Training Process (Research & Validation)
+## 4. Methodology & Research
 
 Training a model is like forging metal: you need the right temperature (hyperparameters) and the right technique (optimizer) to get a strong result.
 
-### Methodology
-1.  **Data Ingestion:** I implemented a custom ETL script (`prepare_data.py`) that parses Pascal VOC XML files. This ensures we rely on ground-truth labels rather than fragile filenames.
-2.  **Preprocessing:** Images are resized to 224x224 and normalized using ImageNet statistics (`mean=[0.485, 0.456, 0.406]`, `std=[0.229, 0.224, 0.225]`).
+1.  **Data Ingestion:** I implemented a custom ETL script (`prepare_data.py`) that parses Pascal VOC XML files directly, ensuring data integrity over relying on filenames.
+2.  **Preprocessing:** Images are resized to 224x224 and normalized using ImageNet statistics (`mean=[0.485...]`, `std=[0.229...]`) to align with the pre-trained weights.
 3.  **Strategy:**
-    * **Transfer Learning:** Leveraged pre-trained weights to accelerate convergence.
+    * **Transfer Learning:** Leveraged pre-trained ResNet18 weights.
     * **Optimizer:** Adam (`lr=0.001`) for adaptive learning rate management.
-    * **Checkpointing:** The system automatically saves the model only when Validation Loss improves, preventing overfitting.
-
-### Performance & Metrics
-We achieved **>99% Accuracy** on the validation set. However, accuracy can be deceiving. In an industrial setting, a False Negative (missing a defect) is costly.
-
-* **Confusion Matrix:** The model shows high diagonal density, confirming minimal confusion between similar textures like *scratches* and *crazing*.
-* **Explainability (Grad-CAM):** To ensure the model isn't "cheating" (looking at background noise), I implemented Grad-CAM visualization. The heatmaps confirm the network focuses specifically on the defect patterns.
-
-> **View the Training Log:** You can inspect the full training run, metrics, and visualizations in the accompanying [Colab Notebook](LINK_A_TU_COLAB).
+    * **Robustness:** Implemented Random Rotation and Color Jittering to simulate variable factory lighting conditions.
 
 ---
 
-## 4. How to Use & Replicate
+## 5. Performance & Results
 
-Whether you want to retrain the system from scratch or use the pre-trained model for inference, follow these steps.
+We achieved **>99% Accuracy** on the validation set. However, in industry, "Accuracy" is vanity; "Recall" is sanity.
+
+### Confusion Matrix
+The model shows high diagonal density, confirming minimal confusion between visually similar textures (e.g., Scratches vs. Crazing).
+
+![Confusion Matrix](https://drive.google.com/uc?id=1jszE37ccE3SCSKA4eRiSlLAeLkqFpf8e)
+
+### Explainability (XAI)
+To ensure the model isn't "cheating" (e.g., looking at background noise), I implemented **Grad-CAM**. The heatmaps confirm the network focuses specifically on the defect patterns.
+
+![Grad-CAM](https://drive.google.com/uc?id=1rfzwPCFpQa-EOwQ58J-HjRYQkn2TUwfT)
+
+---
+
+## 6. How to Use & Replicate
 
 ### Prerequisites
 * Git
@@ -86,32 +107,26 @@ Whether you want to retrain the system from scratch or use the pre-trained model
     pip install -r requirements.txt
     ```
 
-### Scenario A: I want to Train the Model
-The data pipeline is automated. You don't need to manually sort files.
-
-1.  **Download Data:** Place the `neu-surface-defect-database` zip from Kaggle into `data/raw` (or use the Kaggle API as shown in the notebook).
-2.  **Run the ETL Pipeline:**
-    This script reads the XMLs and organizes images into class folders.
+### Scenario A: Train from Scratch
+The data pipeline is automated.
+1.  **Download Data:** Place the `neu-surface-defect-database` zip in `data/raw`.
+2.  **Run Pipeline:**
     ```bash
-    python src/prepare_data.py
+    python src/prepare_data.py  # ETL: XML parsing & organization
+    python src/train.py         # Launches training loop
     ```
-3.  **Launch Training:**
-    ```bash
-    python src/train.py
-    ```
-    *The best model will be saved to `models/model_best.pth`.*
 
-### Scenario B: I want to Predict (Inference)
-If you have a trained model (`.pth`), you can classify new images immediately.
+### Scenario B: Production Inference
+Classify new images immediately using the trained model.
 
 ```bash
-python src/inference.py --image "path/to/test_image.jpg" --model "models/model_best.pth"
+python src/inference.py --image "tests/sample_scratch.jpg" --model "models/model_best.pth"
 ```
 
 **Output Example:**
 ```json
 {
-    "filename": "test_image.jpg",
+    "filename": "sample_scratch.jpg",
     "prediction": "scratches",
     "confidence": 0.9985
 }
@@ -119,13 +134,13 @@ python src/inference.py --image "path/to/test_image.jpg" --model "models/model_b
 
 ---
 
-## 5. Future Roadmap
+## 7. Future Roadmap
 
-To scale this MVP into a fully operational factory solution, the next steps are:
+To scale this MVP into a fully operational factory solution:
 
 * [ ] **Dockerization:** Containerize the inference script for consistent deployment.
 * [ ] **API Layer:** Wrap `inference.py` in a **FastAPI** service for real-time camera integration.
-* [ ] **Data Augmentation:** Implement rotation and lighting jitter to handle variable factory lighting conditions.
+* [ ] **Active Learning:** Implement a loop to feed uncertain predictions back to human labelers.
 
 ---
 
