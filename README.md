@@ -5,15 +5,15 @@
 ![License](https://img.shields.io/badge/License-MIT-green)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](LINK_A_TU_COLAB)
 
-## 1. The Challenge: Quality Beyond the Human Eye
+## 1. Project summary
 
-In high-stakes manufacturing, quality control is the silent guardian of reputation. While human operators are skilled at identifying patterns, fatigue is inevitable. Machines, however, never blink.
+In the metal manufacturing industry, quality control is much more than a mere reputation safeguard, it is a critical safety system, given the high-stakes environments in which these materials are used.
 
-This project is not just an image classifier; it is a **robust, automated visual inspection system** designed to identify defects in steel surfaces. My goal was to move beyond the "notebook experiment" phase and engineer a solution that is **modular, reproducible, and ready for production deployment**.
+This project is not just an image classifier, it is an **automated visual inspection system** designed to identify defects in steel surfaces. My goal was to engineer a solution that is **modular, reproducible, and ready for production deployment**.
 
 ---
 
-## 2. The Data: NEU-DET
+## 2. Dataset
 
 The model is trained on the **NEU Surface Defect Database**, detecting six specific defect types critical in metallurgy:
 
@@ -30,65 +30,70 @@ The model is trained on the **NEU Surface Defect Database**, detecting six speci
 
 ---
 
-## 3. Project Architecture
+## 3. Architecture
 
-Just as a building needs a solid foundation, this project is structured to separate concerns. Data ingestion, model definition, and training logic are decoupled to ensure maintainability.
+Since a solid foundation is just as important as the final outcome, this section outlines the project's architecture, designed specifically for modularity, scalability, and long-term maintenance. Data ingestion, model definition, and training logic are decoupled to ensure maintainability.
 
 ### Directory Structure
 ```text
 surface_defect_detection/
-├── data/                 # Raw and processed ingredients (GitIgnored)
-├── models/               # Trained artifacts (GitIgnored)
-├── notebooks/            # The lab: EDA and prototypes
-├── src/                  # The production machinery
-│   ├── config.py         # Central control panel (Hyperparameters & Paths)
-│   ├── prepare_data.py   # ETL Pipeline: From raw XMLs to structured folders
-│   ├── dataset.py        # Custom PyTorch Dataset (The Loader)
-│   ├── model.py          # ResNet18 Architecture Definition
-│   ├── train.py          # Training Loop with validation & checkpointing
+├── data/                 # Raw and processed data (git ignored)
+├── models/               # Trained artifacts (git ignored)
+├── notebooks/            # The lab to test to train and test the model
+├── src/                  # The cource code
+│   ├── config.py         # Hyperparameters & paths
+│   ├── prepare_data.py   # ETL pipeline
+│   ├── dataset.py        # Custom PyTorch dataset
+│   ├── model.py          # ResNet18 architecture definition
+│   ├── train.py          # Training loop with validation & checkpointing
 │   ├── utils.py          # Metrics and logging tools
 │   └── inference.py      # Production inference script
 ├── requirements.txt      # Dependencies
 └── README.md             # Documentation
 ```
 
-### The Tech Stack
+### Tech stack
 * **Core:** Python 3.10+, PyTorch.
-* **Model:** ResNet18 (Transfer Learning). Chosen for its optimal balance between accuracy and inference speed (FPS) for edge devices.
-* **ETL:** XML Parsing (Pascal VOC) for ground-truth label extraction.
+* **Model:** ResNet18. Chosen for its optimal balance between accuracy and inference speed (FPS) for edge devices.
+* **ETL:** XML parsing para asegurar un control preciso durante el entrenamiento y la evaluación.
+
+### Technical Decisions
+This README covers the high-level setup. However, every parameter in this project, was an argumented engineering choice. 
+
+If you are interested in the "Why" behind the code, please read the **[Architecture & design decisions](ARCHITECTURE.md)** document.
 
 ---
 
-## 4. Methodology & Research
+## 4. Methodology
 
-Training a model is like forging metal: you need the right temperature (hyperparameters) and the right technique (optimizer) to get a strong result.
+Aiming for an optimal balance between reliability and efficiency, I employed the following strategy to train the model:
 
-1.  **Data Ingestion:** I implemented a custom ETL script (`prepare_data.py`) that parses Pascal VOC XML files directly, ensuring data integrity over relying on filenames.
-2.  **Preprocessing:** Images are resized to 224x224 and normalized using ImageNet statistics (`mean=[0.485...]`, `std=[0.229...]`) to align with the pre-trained weights.
-3.  **Strategy:**
-    * **Transfer Learning:** Leveraged pre-trained ResNet18 weights.
+1.  **Data ingestion:** I have implemented a custom ETL script (`prepare_data.py`) that parses the XML files directly, ensuring data integrity over relying on filenames.
+2.  **Preprocessing:** Images are resized to 224x224 and normalized using ImageNet (`mean=[0.485...]`, `std=[0.229...]`) to align with the pre-trained weights.
+3.  **Training:**
+    * **Transfer learning:** Leveraged pre-trained ResNet18 weights.
     * **Optimizer:** Adam (`lr=0.001`) for adaptive learning rate management.
-    * **Robustness:** Implemented Random Rotation and Color Jittering to simulate variable factory lighting conditions.
+    * **Robustness:** Implemented random rotation and color jittering to simulate variable factory lighting conditions.
 
 ---
 
-## 5. Performance & Results
+## 5. Performance & results
 
-We achieved **>99% Accuracy** on the validation set. However, in industry, "Accuracy" is vanity; "Recall" is sanity.
+I had as a result **>99% accuracy** on the validation set.
 
-### Confusion Matrix
-The model shows high diagonal density, confirming minimal confusion between visually similar textures (e.g., Scratches vs. Crazing).
+### Confusion matrix
+The model shows a high diagonal density, confirming minimal confusion between visually similar textures (e.g. scratches vs. crazing).
 
 ![Confusion Matrix](https://drive.google.com/uc?id=1jszE37ccE3SCSKA4eRiSlLAeLkqFpf8e)
 
 ### Explainability (XAI)
-To ensure the model isn't "cheating" (e.g., looking at background noise), I implemented **Grad-CAM**. The heatmaps confirm the network focuses specifically on the defect patterns.
+To ensure the model isn't "cheating" (e.g. looking at background noise), I have implemented **Grad-CAM** in the evaluation lab. The heatmaps confirm the network focuses specifically on the defect patterns.
 
 ![Grad-CAM](https://drive.google.com/uc?id=1rfzwPCFpQa-EOwQ58J-HjRYQkn2TUwfT)
 
 ---
 
-## 6. How to Use & Replicate
+## 6. How to use & replicate
 
 ### Prerequisites
 * Git
@@ -98,7 +103,7 @@ To ensure the model isn't "cheating" (e.g., looking at background noise), I impl
 ### Setup
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/YOUR_USERNAME/surface_defect_detection.git
+    git clone https://github.com/rlucendo/surface_defect_detection.git
     cd surface_defect_detection
     ```
 
@@ -107,23 +112,23 @@ To ensure the model isn't "cheating" (e.g., looking at background noise), I impl
     pip install -r requirements.txt
     ```
 
-### Scenario A: Train from Scratch
+### Scenario A: Train from scratch
 The data pipeline is automated.
-1.  **Download Data:** Place the `neu-surface-defect-database` zip in `data/raw`.
-2.  **Run Pipeline:**
+1.  **Download data:** Place the `neu-surface-defect-database` zip in `data/raw`.
+2.  **Run pipeline:**
     ```bash
     python src/prepare_data.py  # ETL: XML parsing & organization
     python src/train.py         # Launches training loop
     ```
 
-### Scenario B: Production Inference
-Classify new images immediately using the trained model.
+### Scenario B: Production inference
+Classify new images using the trained model.
 
 ```bash
 python src/inference.py --image "tests/sample_scratch.jpg" --model "models/model_best.pth"
 ```
 
-**Output Example:**
+**Output example:**
 ```json
 {
     "filename": "sample_scratch.jpg",
@@ -134,19 +139,19 @@ python src/inference.py --image "tests/sample_scratch.jpg" --model "models/model
 
 ---
 
-## 7. Future Roadmap
+## 7. Future roadmap
 
 To scale this MVP into a fully operational factory solution:
 
 * [ ] **Dockerization:** Containerize the inference script for consistent deployment.
-* [ ] **API Layer:** Wrap `inference.py` in a **FastAPI** service for real-time camera integration.
-* [ ] **Active Learning:** Implement a loop to feed uncertain predictions back to human labelers.
+* [ ] **API layer:** Wrap `inference.py` in a **FastAPI** service for real-time camera integration.
+* [ ] **Active learning:** Implement a loop to feed uncertain predictions back to human labelers.
 
 ---
 
 ## Author
 
-**Rubén Lucendo**
+**Rubén Lucendo**  
 *AI Engineer & Product Builder*
 
-I build systems that bridge the gap between technical complexity and business value.
+Building systems that bridge the gap between theory and business value.
