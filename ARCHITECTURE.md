@@ -1,9 +1,9 @@
 (WIP file - under review and waiting to be translated)
 
-MANIFIESTO TÉCNICO: Diseño y Arquitectura del Proyecto
+MANIFIESTO TÉCNICO: Diseño y arquitectura del proyecto
 ======================================================
 
-CAPA 1: INGENIERÍA DE SOFTWARE Y ESTRUCTURA
+CAPA 1: ESTRUCTURA
 -------------------------------------------
 
 *Decisiones sobre cómo se organiza el código para que sea mantenible y escalable.*
@@ -45,25 +45,25 @@ CAPA 2: INGENIERÍA DE DATOS (ETL)
 
 *Decisiones tomadas en `prepare_data.py`.*
 
--   **Parsing de XML (Pascal VOC):**
+-   **Parsing de XML:**
 
     -   **Decisión:** Leer la etiqueta `<name>` dentro del XML en lugar de usar el nombre del archivo JPG.
 
-    -   **Por qué:** Robustez (Ground Truth). Los nombres de archivo son frágiles y manipulables; el metadato interno es la fuente de verdad.
+    -   **Por qué:** Robustez. Los nombres de archivo son vulnerables a errores de escritura y no tienen una estructura lo suficientemente estricta como para ser fiable en este contexto. Usaremos los metadatos.
 
--   **Extensiones de Archivo:**
+-   **Filtrado de extensiones:**
 
     -   **Decisión:** Filtrar por `endswith(('.jpg', '.bmp', ...))`.
 
-    -   **Por qué:** El dataset contiene archivos de sistema o temporales que romperían la carga de imágenes.
+    -   **Por qué:** El dataset puede contener archivos de sistema o temporales que podrían interrumpir la carga de imágenes.
 
--   **Manejo de Errores (Try/Except):**
+-   **Gestión de errores (try/except):**
 
     -   **Decisión:** Si una imagen referenciada en el XML no existe, la salto y logueo el error, no rompo la ejecución.
 
-    -   **Por qué:** En pipelines de Big Data, un dato corrupto no debe detener el procesamiento de 1 millón de datos válidos.
+    -   **Por qué:** Dada la gran cantidad de datos que podemos procesar con este código, la probabilidad de que haya un error tratando alguno de los archivos es muy alta, de esta forma evitamos interrumpir el proceso completo por culpa de algunos errores aislados.
 
--   **Estructura de Carpetas (`processed/class_name`):**
+-   **Estructura de carpetas (`processed/class_name`):**
 
     -   **Decisión:** Crear subcarpetas por clase.
 
@@ -80,7 +80,7 @@ CAPA 3: EL DATASET Y DATALOADER
 
     -   **Decisión:** Crear una clase propia `SteelSurfaceDataset`.
 
-    -   **Por qué:** Me da control total sobre cómo se lee el archivo (ej: si quisiera leer desde un S3 o una base de datos SQL en el futuro) frente a usar el `ImageFolder` genérico.
+    -   **Por qué:** Me da control total sobre cómo se lee el archivo (ej: si quisiera leer desde un servicio de almacenamiento remoto como Amazon S3 o una base de datos SQL en el futuro) frente a usar el `ImageFolder` genérico.
 
 -   **Conversión a RGB (`.convert("RGB")`):**
 
@@ -90,13 +90,13 @@ CAPA 3: EL DATASET Y DATALOADER
 
 -   **Lectura con PIL (Pillow):**
 
-    -   **Por qué:** Es el estándar de facto en Python, más seguro y eficiente en memoria que `cv2` para operaciones de carga simples en PyTorch.
+    -   **Por qué:** Es el estándar en Python, más seguro y eficiente en memoria que `cv2` para operaciones de carga simples en PyTorch.
 
--   **Num Workers (`num_workers=2`):**
+-   **Num workers (`num_workers=2`):**
 
     -   **Decisión:** Usar sub-procesos para cargar datos.
 
-    -   **Por qué:** Mientras la GPU entrena (calcula gradientes), la CPU carga el siguiente batch en paralelo. Evita que la GPU se quede esperando ("GPU Starvation"). No puse 16 porque en Colab/Local el overhead de crear hilos superaría el beneficio.
+    -   **Por qué:** Mientras la GPU entrena, la CPU carga el siguiente batch en paralelo. Evita que la GPU se quede esperando ("GPU Starvation"). No puse 16 porque en Colab el overhead de crear hilos superaría el beneficio.
 
 -   **Pin Memory (`pin_memory=True` implícito o explícito):**
 
@@ -111,7 +111,7 @@ CAPA 3: EL DATASET Y DATALOADER
 CAPA 4: PRE-PROCESAMIENTO Y AUGMENTATION
 ----------------------------------------
 
-*Decisiones matemáticas sobre los tensores.*
+*Decisiones sobre los tensores.*
 
 -   **Resize (224, 224):**
 
@@ -121,7 +121,7 @@ CAPA 4: PRE-PROCESAMIENTO Y AUGMENTATION
 
     -   **Decisión:** Usar las estadísticas de ImageNet.
 
-    -   **Por qué:** Matemática pura. Los pesos de la red pre-entrenada se ajustaron viendo imágenes con esa distribución de color. Si le paso mis imágenes sin normalizar (valores 0-255 o 0-1 planos), las activaciones de las neuronas se saturarán o serán muy bajas, impidiendo el aprendizaje.
+    -   **Por qué:** Los pesos de la red pre-entrenada se ajustaron viendo imágenes con esa distribución de color. Si le paso mis imágenes sin normalizar (valores 0-255 o 0-1 planos), las activaciones de las neuronas se saturarán o serán muy bajas, impidiendo el aprendizaje.
 
 -   **ToTensor:**
 
@@ -156,11 +156,11 @@ CAPA 5: ARQUITECTURA DEL MODELO
 
     -   **Por qué:** La red original clasifica 1000 clases. Yo necesito 6. Corto la última capa y pongo una nueva no entrenada que proyecte a mi espacio de 6 dimensiones.
 
--   **Fine-Tuning Completo (No congelar capas):**
+-   **Fine-Tuning completo (No congelar capas):**
 
     -   **Decisión:** No he hecho `param.requires_grad = False` en las capas base.
 
-    -   **Por qué:** Las texturas del acero son muy diferentes a las fotos de ImageNet (perros, coches). Necesito que TODA la red se adapte ligeramente a este nuevo dominio visual ("Domain Adaptation").
+    -   **Por qué:** Las texturas del acero son muy diferentes a las fotos de ImageNet (perros, coches). Necesito que toda la red se adapte ligeramente a este nuevo dominio visual ("Domain Adaptation").
 
 * * * * *
 
@@ -179,11 +179,11 @@ CAPA 6: ENTRENAMIENTO Y OPTIMIZACIÓN
 
     -   **Por qué:** Adam tiene "momentum" adaptativo por parámetro. En datasets ruidosos o con geometrías de pérdida complejas, converge más rápido y requiere menos ajuste manual del Learning Rate.
 
--   **Learning Rate (0.001):**
+-   **Learning rate (0.001):**
 
     -   **Por qué:** Es el valor por defecto estándar para Adam. Un valor mayor (0.1) haría diverger el entrenamiento; uno menor (0.00001) sería demasiado lento.
 
--   **Zero Grad (`optimizer.zero_grad()`):**
+-   **Zero grad (`optimizer.zero_grad()`):**
 
     -   **Por qué:** PyTorch acumula gradientes por defecto (útil para RNNs). En CNNs necesitamos limpiarlos en cada batch o la actualización sería la suma de todo el historial, lo cual sería erróneo.
 
@@ -202,7 +202,7 @@ CAPA 7: VALIDACIÓN Y MÉTRICAS
 
     -   **Por qué:** Crítico. Cambia el comportamiento de capas específicas.
 
-        -   **Batch Normalization:** En `eval`, usa la media/varianza global aprendida, no la del batch actual.
+        -   **Batch normalization:** En `eval`, usa la media/varianza global aprendida, no la del batch actual.
 
         -   **Dropout:** En `eval`, se desactiva (no apaga neuronas) para usar toda la capacidad de la red.
 
@@ -251,10 +251,10 @@ CAPA 8: INFERENCIA Y PRODUCCIÓN
 
 * * * * *
 
-CAPA 9: PRODUCTO Y NEGOCIO (EL VALOR AÑADIDO)
+CAPA 9: PRESENTACIÓN Y APLICACIÓN
 ---------------------------------------------
 
-*Decisiones de README y reporte.*
+*Decisiones de README y muestra de resultados.*
 
 -   **Matriz de Confusión:**
 
